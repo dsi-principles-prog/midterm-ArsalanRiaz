@@ -23,5 +23,5 @@ Link: https://www.kaggle.com/rajeevw/ufcdata
 
 We need to predict the fighter in which corner i.e. blue or red will win the fight. Since we have the all the stats of both
 
-boxers excluding the current fight.
+fighters excluding the current fight stats. Therefore, we can easily predict by using the variables in order to know which fighter will win
 
