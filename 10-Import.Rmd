@@ -83,12 +83,7 @@ ufc <- read_csv("ufcdata/data.csv") %>%
 ```
 
 
-# Describe the data and the problem
-
-
-This is a list of every UFC fight in the history of the organisation. Every row contains information about both fighters, fight details and the winner. The data was scraped from ufcstats website. After fightmetric ceased to exist, this came into picture. There was a lot of information on the website about every fight and every event and there were no existing ways of capturing all this.Beautifulsoup was used to scrape the data and pandas to process it.
-Our goal is predicting from the dataset that which corner will win i.e. blue and red will win the fight
-
+### Please note that i donot have any columns on which i could perform type conversion. This is the most cleaning that i could do 
 
 
 

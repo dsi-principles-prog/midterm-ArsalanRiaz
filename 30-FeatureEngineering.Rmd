@@ -89,8 +89,8 @@ windorizing1 <- function(df, vars) {
           
 
 ufc_refined %>% windorizing1(c("b_avg_opp_total_str_att", "b_avg_clinch_landed")) %>% 
-  assert(within_bounds(0,200,b_avg_opp_total_str_att)) %>% 
-  assert(within_bounds(0,250,b_avg_clinch_landed))
+  assert(within_bounds(0,200),b_avg_opp_total_str_att_windorized_values)%>% 
+  assert(within_bounds(0,250),b_avg_clinch_landed_windorized_values)
 
 
 # Assert upper bound is calculated on the following condition
