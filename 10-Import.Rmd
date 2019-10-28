@@ -1,0 +1,1173 @@
+---
+title: "10-Import"
+output: html_notebook
+---
+
+# Describe the data and the problem
+
+
+This is a list of every UFC fight in the history of the organisation. Every row contains information about both fighters, fight details and the winner. The data was scraped from ufcstats website. After fightmetric ceased to exist, this came into picture. There was a lot of information on the website about every fight and every event and there were no existing ways of capturing all this.Beautifulsoup was used to scrape the data and pandas to process it.
+Our goal is predicting from the dataset that which corner will win i.e. blue and red will win the fight
+
+# Content
+
+Each row is a compilation of both fighter stats. Fighters are represented by 'red' and 'blue' (for red and blue corner). So for instance, red fighter has the complied average stats of all the fights except the current one. The stats include damage done by the red fighter on the opponent and the damage done by the opponent on the fighter (represented by 'opp' in the columns) in all the fights this particular red fighter has had, except this one as it has not occured yet (in the data). Same information exists for blue fighter. The target variable is 'Winner' which is the only column that tells you what happened. Here are some column definitions:
+
+# Column definitions:
+
+R_ and B_ prefix signifies red and blue corner fighter stats respectively
+'_opp_' containing columns is the average of damage done by the opponent on the fighter
+KD is number of knockdowns
+SIG_STR is no. of significant strikes 'landed of attempted'
+SIG_STR_pct is significant strikes percentage
+TOTAL_STR is total strikes 'landed of attempted'
+TD is no. of takedowns
+TD_pct is takedown percentages
+SUB_ATT is no. of submission attempts
+PASS is no. times the guard was passed?
+HEAD is no. of significant strinks to the head 'landed of attempted'
+BODY is no. of significant strikes to the body 'landed of attempted'
+CLINCH is no. of significant strikes in the clinch 'landed of attempted'
+GROUND is no. of significant strikes on the ground 'landed of attempted'
+win_by is method of win
+last_round is last round of the fight (ex. if it was a KO in 1st, then this will be 1)
+last_round_time is when the fight ended in the last round
+Format is the format of the fight (3 rounds, 5 rounds etc.)
+Referee is the name of the Ref
+date is the date of the fight
+location is the location in which the event took place
+Fight_type is which weight class and whether it's a title bout or not
+Winner is the winner of the fight
+Stance is the stance of the fighter (orthodox, southpaw, etc.)
+Height_cms is the height in centimeter
+Reach_cms is the reach of the fighter (arm span) in centimeter
+Weight_lbs is the weight of the fighter in pounds (lbs)
+age is the age of the fighter
+title_bout Boolean value of whether it is title fight or not
+weight_class is which weight class the fight is in (Bantamweight, heavyweight, Women's flyweight, etc.)
+no_of_rounds is the number of rounds the fight was scheduled for
+current_lose_streak is the count of current concurrent losses of the fighter
+current_win_streak is the count of current concurrent wins of the fighter
+draw is the number of draws in the fighter's ufc career
+wins is the number of wins in the fighter's ufc career
+losses is the number of losses in the fighter's ufc career
+total_rounds_fought is the average of total rounds fought by the fighter
+total_time_fought(seconds) is the count of total time spent fighting in seconds
+total_title_bouts is the total number of title bouts taken part in by the fighter
+win_by_Decision_Majority is the number of wins by majority judges decision in the fighter's ufc career
+win_by_Decision_Split is the number of wins by split judges decision in the fighter's ufc career
+win_by_Decision_Unanimous is the number of wins by unanimous judges decision in the fighter's ufc career
+win_by_KO/TKO is the number of wins by knockout in the fighter's ufc career
+win_by_Submission is the number of wins by submission in the fighter's ufc career
+win_by_TKO_Doctor_Stoppage is the number of wins by doctor stoppage in the fighter's ufc career
+
+# Libraries
+
+```{r  Libraries}
+library(readr)
+library(tidyverse)
+library(dplyr)
+library(janitor)
+library(assertr)
+library(lubridate)
+```
+
+
+#Importing data with clean names
+
+```{r Importing data with clean names}
+ufc <- read_csv("ufcdata/data.csv") %>% 
+  clean_names()
+  
+
+```
+
+
+# Describe the data and the problem
+
+
+This is a list of every UFC fight in the history of the organisation. Every row contains information about both fighters, fight details and the winner. The data was scraped from ufcstats website. After fightmetric ceased to exist, this came into picture. There was a lot of information on the website about every fight and every event and there were no existing ways of capturing all this.Beautifulsoup was used to scrape the data and pandas to process it.
+Our goal is predicting from the dataset that which corner will win i.e. blue and red will win the fight
+
+
+
+
+# Checking the summary to have an idea of the data
+```{r checking summary}
+summary(ufc)
+
+
+
+```
+
+# validating all the rows in the dataset for negative values
+
+```{r Verifing for negative values}
+
+ufc %>% 
+  verify(nrow(.) > 0)
+
+
+
+```
+
+# Checking for NAs in all the data set
+
+```{r checking for NAs}
+ufc %>% 
+  assert(not_na,everything())
+
+```
+
+# Removing NAs
+
+1. replacing the NAs in r_total_time_fought_seconds by the mean value of each weight class and checking assert function after replacing the mean values
+
+```{r removing NAs for r_total_time_fought_seconds }
+
+ufc_refined <- ufc %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_weight_class_r_total_time_fought_seconds = mean(r_total_time_fought_seconds,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ufc_refined$r_total_time_fought_seconds[is.na(ufc_refined$r_total_time_fought_seconds)] <- ufc_refined$Mean_weight_class_r_total_time_fought_seconds[is.na(ufc_refined$r_total_time_fought_seconds)]
+ 
+ufc_refined %>% 
+  assert(not_na, r_total_time_fought_seconds) 
+ 
+
+
+
+
+
+
+
+
+
+```
+
+# 2. Removing NAs for r_height_cms by replacing with the mean of the weight class in which the player is 
+
+
+```{r Removing NAs for r_height_cms by replacing with the mean of the wight class in which the player is1 }
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_r_height_cms = mean(r_height_cms,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+# ufc_refined %>% 
+#   select(Mean_r_height_cms)
+
+ ufc_refined$r_height_cms[is.na(ufc_refined$r_height_cms)] <- ufc_refined$Mean_r_height_cms[is.na(ufc_refined$r_height_cms)]
+ 
+ufc_refined %>% 
+  assert(not_na, r_height_cms)
+
+
+
+
+```
+
+# 3. r_reach_cms Removing NAs for r_reach_cms by replacing with the mean of the wight class in which the player is  
+
+```{r r_reach_cms Removing NAs for r_reach_cms by replacing with the mean of the wight class in which the player is3  }
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_r_reach_cms = mean(r_reach_cms,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$r_reach_cms[is.na(ufc_refined$r_reach_cms)] <- ufc_refined$Mean_r_reach_cms[is.na(ufc_refined$r_reach_cms)]
+ 
+ufc_refined %>% 
+  assert(not_na, r_reach_cms)
+
+
+```
+# 4.  
+
+b_avg_body_att -  Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_body_att-Removing NAs the by replacing with the mean of the weight class in which the player is4}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_body_att = mean(b_avg_body_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_body_att[is.na(ufc_refined$b_avg_body_att)] <- ufc_refined$Mean_b_avg_body_att[is.na(ufc_refined$b_avg_body_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_body_att)
+
+
+
+```
+
+
+
+# b_avg_body_landed' - Removing NAs the by replacing with the mean of the weight class in which the player is
+
+
+```{r  b_avg_body_landed Removing NAs the by replacing with the mean of the weight class in which the player is5}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_body_landed = mean(b_avg_body_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_body_landed[is.na(ufc_refined$b_avg_body_landed)] <- ufc_refined$Mean_b_avg_body_landed[is.na(ufc_refined$b_avg_body_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_body_landed)
+
+
+
+```
+
+
+# b_avg_clinch_att - Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r  b_avg_clinch_att Removing NAs the by replacing with the mean of the weight class in which the player is6}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_clinch_att = mean(b_avg_clinch_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_clinch_att[is.na(ufc_refined$b_avg_clinch_att)] <- ufc_refined$Mean_b_avg_clinch_att[is.na(ufc_refined$b_avg_clinch_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_clinch_att)
+
+
+
+```
+
+# b_avg_clinch_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r  b_avg_clinch_landed Removing NAs the by replacing with the mean of the weight class in which the player is7}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_clinch_landed = mean(b_avg_clinch_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_clinch_landed[is.na(ufc_refined$b_avg_clinch_landed)] <- ufc_refined$Mean_b_avg_clinch_landed[is.na(ufc_refined$b_avg_clinch_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_clinch_landed)
+
+```
+# b_avg_distance_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_distance_att Removing NAs the by replacing with the mean of the weight class in which the player is8}
+
+
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_distance_att = mean(b_avg_distance_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_distance_att[is.na(ufc_refined$b_avg_distance_att)] <- ufc_refined$Mean_b_avg_distance_att[is.na(ufc_refined$b_avg_distance_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_distance_att)
+
+```
+
+# b_avg_distance_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_distance_landed Removing NAs the by replacing with the mean of the weight class in which the player is9}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_distance_landed = mean(b_avg_distance_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_distance_landed[is.na(ufc_refined$b_avg_distance_landed)] <- ufc_refined$Mean_b_avg_distance_landed[is.na(ufc_refined$b_avg_distance_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_distance_landed)
+
+```
+
+
+# b_avg_ground_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_ground_att Removing NAs the by replacing with the mean of the weight class in which the player is10}
+
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_ground_att  = mean(b_avg_ground_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_ground_att[is.na(ufc_refined$b_avg_ground_att)] <- ufc_refined$Mean_b_avg_ground_att[is.na(ufc_refined$b_avg_ground_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_ground_att)
+
+
+```
+
+# b_avg_ground_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+
+```{r b_avg_ground_landed Removing NAs the by replacing with the mean of the weight class in which the player isa}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_ground_landed  = mean(b_avg_ground_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_ground_landed[is.na(ufc_refined$b_avg_ground_landed)] <- ufc_refined$Mean_b_avg_ground_landed[is.na(ufc_refined$b_avg_ground_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_ground_landed)
+
+
+
+```
+
+# b_avg_head_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+
+```{r b_avg_head_att Removing NAs the by replacing with the mean of the weight class in which the player isb}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_head_att = mean(b_avg_head_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_head_att[is.na(ufc_refined$b_avg_head_att)] <- ufc_refined$Mean_b_avg_head_att[is.na(ufc_refined$b_avg_head_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_head_att)
+
+```
+
+
+# b_avg_head_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_head_landed Removing NAs the by replacing with the mean of the weight class in which the player isc}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_head_landed = mean(b_avg_head_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_head_landed[is.na(ufc_refined$b_avg_head_landed)] <- ufc_refined$Mean_b_avg_head_landed[is.na(ufc_refined$b_avg_head_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_head_landed)
+
+```
+
+# b_avg_kd Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_kd Removing NAs the by replacing with the mean of the weight class in which the player isd}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_kd = mean(b_avg_kd,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_kd[is.na(ufc_refined$b_avg_kd)] <- ufc_refined$Mean_b_avg_kd[is.na(ufc_refined$b_avg_kd)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_kd)
+
+
+```
+
+# b_avg_leg_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_leg_att Removing NAs the by replacing with the mean of the weight class in which the player ise}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_leg_att = mean(b_avg_leg_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_leg_att[is.na(ufc_refined$b_avg_leg_att)] <- ufc_refined$Mean_b_avg_leg_att[is.na(ufc_refined$b_avg_leg_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_leg_att)
+
+
+```
+
+
+
+
+# b_avg_leg_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_leg_landed Removing NAs the by replacing with the mean of the weight class in which the player isf}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_leg_landed = mean(b_avg_leg_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_leg_landed[is.na(ufc_refined$b_avg_leg_landed)] <- ufc_refined$Mean_b_avg_leg_landed[is.na(ufc_refined$b_avg_leg_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_leg_landed)
+
+```
+
+# b_avg_pass Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_pass Removing NAs the by replacing with the mean of the weight class in which the player isg}
+
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_pass = mean(b_avg_pass,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_pass[is.na(ufc_refined$b_avg_pass)] <- ufc_refined$Mean_b_avg_pass[is.na(ufc_refined$b_avg_pass)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_pass)
+
+```
+
+# b_avg_rev Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_rev Removing NAs the by replacing with the mean of the weight class in which the player ish}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_rev = mean(b_avg_rev,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_rev[is.na(ufc_refined$b_avg_rev)] <- ufc_refined$Mean_b_avg_rev[is.na(ufc_refined$b_avg_rev)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_rev)
+
+```
+
+
+# b_avg_sig_str_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_sig_str_att Removing NAs the by replacing with the mean of the weight class in which the player isi}
+
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_sig_str_att = mean(b_avg_sig_str_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_sig_str_att[is.na(ufc_refined$b_avg_sig_str_att)] <- ufc_refined$Mean_b_avg_sig_str_att[is.na(ufc_refined$b_avg_sig_str_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_sig_str_att)
+
+```
+
+# b_avg_sig_str_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_sig_str_landed Removing NAs the by replacing with the mean of the weight class in which the player isj}
+
+
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_sig_str_landed = mean(b_avg_sig_str_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_sig_str_landed[is.na(ufc_refined$b_avg_sig_str_landed)] <- ufc_refined$Mean_b_avg_sig_str_landed[is.na(ufc_refined$b_avg_sig_str_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_sig_str_landed)
+
+```
+
+
+# b_avg_sig_str_pct Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_sig_str_pct Removing NAs the by replacing with the mean of the weight class in which the player isk}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_sig_str_pct = mean(b_avg_sig_str_pct,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_sig_str_pct[is.na(ufc_refined$b_avg_sig_str_pct)] <- ufc_refined$Mean_b_avg_sig_str_pct[is.na(ufc_refined$b_avg_sig_str_pct)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_sig_str_pct)
+```
+
+
+
+# b_avg_sub_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_sub_att Removing NAs the by replacing with the mean of the weight class in which the player isl}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_sub_att = mean(b_avg_sub_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_sub_att[is.na(ufc_refined$b_avg_sub_att)] <- ufc_refined$Mean_b_avg_sub_att[is.na(ufc_refined$b_avg_sub_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_sub_att)
+```
+
+
+# b_avg_td_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_td_att Removing NAs the by replacing with the mean of the weight class in which the player ism}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_td_att = mean(b_avg_td_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_td_att[is.na(ufc_refined$b_avg_td_att)] <- ufc_refined$Mean_b_avg_td_att[is.na(ufc_refined$b_avg_td_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_td_att)
+```
+
+# b_avg_td_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_td_landed Removing NAs the by replacing with the mean of the weight class in which the player isn}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_td_landed = mean(b_avg_sig_str_pct,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_td_landed[is.na(ufc_refined$b_avg_td_landed)] <- ufc_refined$Mean_b_avg_td_landed[is.na(ufc_refined$b_avg_td_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_td_landed)
+```
+
+
+# b_avg_td_pct  Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_td_pct Removing NAs the by replacing with the mean of the weight class in which the player iso}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_td_pct = mean(b_avg_td_pct,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_td_pct[is.na(ufc_refined$b_avg_td_pct)] <- ufc_refined$Mean_b_avg_td_pct[is.na(ufc_refined$b_avg_td_pct)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_td_pct)
+```
+
+# b_avg_total_str_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_total_str_att Removing NAs the by replacing with the mean of the weight class in which the player isp}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_total_str_att = mean(b_avg_total_str_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_total_str_att[is.na(ufc_refined$b_avg_total_str_att)] <- ufc_refined$Mean_b_avg_total_str_att[is.na(ufc_refined$b_avg_total_str_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_total_str_att)
+```
+
+#  b_avg_total_str_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_total_str_landed Removing NAs the by replacing with the mean of the weight class in which the player isq}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_total_str_landed = mean(b_avg_total_str_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_total_str_landed[is.na(ufc_refined$b_avg_total_str_landed)] <- ufc_refined$Mean_b_avg_total_str_landed[is.na(ufc_refined$b_avg_total_str_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_total_str_landed)
+```
+
+# b_avg_opp_body_att Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_body_att Removing NAs the by replacing with the mean of the weight class in which the player isr}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_body_att = mean(b_avg_opp_body_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_body_att[is.na(ufc_refined$b_avg_opp_body_att)] <- ufc_refined$Mean_b_avg_opp_body_att[is.na(ufc_refined$b_avg_opp_body_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_body_att)
+```
+
+# b_avg_opp_body_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_opp_body_landed Removing NAs the by replacing with the mean of the weight class in which the player iss}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_body_landed = mean(b_avg_opp_body_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_body_landed[is.na(ufc_refined$b_avg_opp_body_landed)] <- ufc_refined$Mean_b_avg_opp_body_landed[is.na(ufc_refined$b_avg_opp_body_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_body_landed)
+```
+
+# b_avg_opp_clinch_att Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_clinch_att Removing NAs the by replacing with the mean of the weight class in which the player ist}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_clinch_att = mean(b_avg_opp_clinch_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_clinch_att[is.na(ufc_refined$b_avg_opp_clinch_att)] <- ufc_refined$Mean_b_avg_opp_clinch_att[is.na(ufc_refined$b_avg_opp_clinch_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_clinch_att)
+```
+
+# b_avg_opp_clinch_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_clinch_landed Removing NAs the by replacing with the mean of the weight class in which the player isu}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_clinch_landed = mean(b_avg_opp_clinch_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_clinch_landed[is.na(ufc_refined$b_avg_opp_clinch_landed)] <- ufc_refined$Mean_b_avg_opp_clinch_landed[is.na(ufc_refined$b_avg_opp_clinch_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_clinch_landed)
+```
+
+b_avg_opp_distance_att Removing NAs the by replacing with the mean of the weight class in which the player is
+#
+```{r b_avg_opp_distance_att Removing NAs the by replacing with the mean of the weight class in which the player isv}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_distance_att = mean(b_avg_opp_distance_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_distance_att[is.na(ufc_refined$b_avg_opp_distance_att)] <- ufc_refined$Mean_b_avg_opp_distance_att[is.na(ufc_refined$b_avg_opp_distance_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_distance_att)
+```
+
+# b_avg_opp_distance_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_distance_landed Removing NAs the by replacing with the mean of the weight class in which the player isw}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_distance_landed = mean(b_avg_opp_distance_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_distance_landed[is.na(ufc_refined$b_avg_opp_distance_landed)] <- ufc_refined$Mean_b_avg_opp_distance_landed[is.na(ufc_refined$b_avg_opp_distance_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_distance_landed)
+```
+
+# b_avg_opp_ground_att Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_ground_att Removing NAs the by replacing with the mean of the weight class in which the player isx}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_ground_att = mean(b_avg_opp_ground_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_ground_att[is.na(ufc_refined$b_avg_opp_ground_att)] <- ufc_refined$Mean_b_avg_opp_ground_att[is.na(ufc_refined$b_avg_opp_ground_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_ground_att)
+```
+
+# b_avg_opp_ground_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_ground_landed Removing NAs the by replacing with the mean of the weight class in which the player isy}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_ground_landed = mean(b_avg_opp_ground_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_ground_landed[is.na(ufc_refined$b_avg_opp_ground_landed)] <- ufc_refined$Mean_b_avg_opp_ground_landed[is.na(ufc_refined$b_avg_opp_ground_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_ground_landed)
+
+```
+
+# b_avg_opp_head_att Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_head_att Removing NAs the by replacing with the mean of the weight class in which the player isz}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_head_att = mean(b_avg_opp_head_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_head_att[is.na(ufc_refined$b_avg_opp_head_att)] <- ufc_refined$Mean_b_avg_opp_head_att[is.na(ufc_refined$b_avg_opp_head_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_head_att)
+```
+
+# b_avg_opp_head_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_head_landed Removing NAs the by replacing with the mean of the weight class in which the player is11}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_head_landed = mean(b_avg_opp_head_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_head_landed[is.na(ufc_refined$b_avg_opp_head_landed)] <- ufc_refined$Mean_b_avg_opp_head_landed[is.na(ufc_refined$b_avg_opp_head_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_head_landed)
+```
+
+# b_avg_opp_kd Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_kd Removing NAs the by replacing with the mean of the weight class in which the player is12}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_kd = mean(b_avg_opp_kd,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_kd[is.na(ufc_refined$b_avg_opp_kd)] <- ufc_refined$Mean_b_avg_opp_kd[is.na(ufc_refined$b_avg_opp_kd)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_kd)
+```
+
+# b_avg_opp_leg_att Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_leg_att Removing NAs the by replacing with the mean of the weight class in which the player is13}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_leg_att = mean(b_avg_opp_leg_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_leg_att[is.na(ufc_refined$b_avg_opp_leg_att)] <- ufc_refined$Mean_b_avg_opp_leg_att[is.na(ufc_refined$b_avg_opp_leg_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_leg_att)
+```
+
+
+# b_avg_opp_leg_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_opp_leg_landed Removing NAs the by replacing with the mean of the weight class in which the player is14}
+
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_leg_att = mean(b_avg_opp_leg_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_leg_att[is.na(ufc_refined$b_avg_opp_leg_att)] <- ufc_refined$Mean_b_avg_opp_leg_att[is.na(ufc_refined$b_avg_opp_leg_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_leg_att)
+
+
+```
+
+# b_avg_opp_pass Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_opp_pass Removing NAs the by replacing with the mean of the weight class in which the player is15}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_pass = mean(b_avg_opp_pass,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_pass[is.na(ufc_refined$b_avg_opp_pass)] <- ufc_refined$Mean_b_avg_opp_pass[is.na(ufc_refined$b_avg_opp_pass)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_pass)
+```
+
+# b_avg_opp_leg_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r b_avg_opp_leg_atta Removing NAs the by replacing with the mean of the weight class in which the player is16}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_leg_att = mean(b_avg_opp_leg_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_leg_att[is.na(ufc_refined$b_avg_opp_leg_att)] <- ufc_refined$Mean_b_avg_opp_leg_att[is.na(ufc_refined$b_avg_opp_leg_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_leg_att)
+```
+
+
+# b_avg_opp_rev Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_rev Removing NAs the by replacing with the mean of the weight class in which the player is17}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_rev = mean(b_avg_opp_rev,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_rev[is.na(ufc_refined$b_avg_opp_rev)] <- ufc_refined$Mean_b_avg_opp_rev[is.na(ufc_refined$b_avg_opp_rev)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_rev)
+```
+
+#  b_avg_opp_sig_str_att Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_sig_str_att Removing NAs the by replacing with the mean of the weight class in which the player is18}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_sig_str_att = mean(b_avg_opp_sig_str_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_sig_str_att[is.na(ufc_refined$b_avg_opp_sig_str_att)] <- ufc_refined$Mean_b_avg_opp_sig_str_att[is.na(ufc_refined$b_avg_opp_sig_str_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_sig_str_att)
+```
+
+# b_avg_opp_sig_str_landed mRemoving NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_sig_str_landed Removing NAs the by replacing with the mean of the weight class in which the player is19}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_sig_str_landed = mean(b_avg_opp_sig_str_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_sig_str_landed[is.na(ufc_refined$b_avg_opp_sig_str_landed)] <- ufc_refined$Mean_b_avg_opp_sig_str_landed[is.na(ufc_refined$b_avg_opp_sig_str_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_sig_str_landed)
+```
+
+# b_avg_opp_sig_str_pct Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_sig_str_pct Removing NAs the by replacing with the mean of the weight class in which the player is20}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>% 
+  mutate(Mean_b_avg_opp_sig_str_pct = mean(b_avg_opp_sig_str_pct,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_sig_str_pct[is.na(ufc_refined$b_avg_opp_sig_str_pct)] <- ufc_refined$Mean_b_avg_opp_sig_str_pct[is.na(ufc_refined$b_avg_opp_sig_str_pct)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_sig_str_pct)
+```
+ b_avg_opp_sub_att Removing NAs the by replacing with the mean of the weight class in which the player is
+#
+```{r b_avg_opp_sub_att Removing NAs the by replacing with the mean of the weight class in which the player is21}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>%
+  mutate(Mean_b_avg_opp_sub_att = mean(b_avg_opp_sub_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_sub_att[is.na(ufc_refined$b_avg_opp_sub_att)] <- ufc_refined$Mean_b_avg_opp_sub_att[is.na(ufc_refined$b_avg_opp_sub_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_sub_att)
+```
+
+
+# b_avg_opp_td_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+
+```{r b_avg_opp_td_att Removing NAs the by replacing with the mean of the weight class in which the player is22}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>%
+  mutate(Mean_b_avg_opp_sub_att = mean(b_avg_opp_sub_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_sub_att[is.na(ufc_refined$b_avg_opp_sub_att)] <- ufc_refined$Mean_b_avg_opp_sub_att[is.na(ufc_refined$b_avg_opp_sub_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_sub_att)
+```
+
+ Removing NAs the by replacing with the mean of the weight class in which the player is
+# b_avg_opp_td_landed
+```{r b_avg_opp_td_landed Removing NAs the by replacing with the mean of the weight class in which the player is23}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>%
+  mutate(Mean_b_avg_opp_td_landed = mean(b_avg_opp_td_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_td_landed[is.na(ufc_refined$b_avg_opp_td_landed)] <- ufc_refined$Mean_b_avg_opp_td_landed[is.na(ufc_refined$b_avg_opp_td_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_td_landed)
+```
+
+# b_avg_opp_td_pct Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_td_pct Removing NAs the by replacing with the mean of the weight class in which the player is24}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>%
+  mutate(Mean_b_avg_opp_td_pct = mean(b_avg_opp_td_pct,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_td_pct[is.na(ufc_refined$b_avg_opp_td_pct)] <- ufc_refined$Mean_b_avg_opp_td_pct[is.na(ufc_refined$b_avg_opp_td_pct)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_td_pct)
+```
+
+# b_avg_opp_total_str_att Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r b_avg_opp_total_str_att Removing NAs the by replacing with the mean of the weight class in which the player is25}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>%
+  mutate(Mean_b_avg_opp_total_str_att = mean(b_avg_opp_total_str_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_total_str_att[is.na(ufc_refined$b_avg_opp_total_str_att)] <- ufc_refined$Mean_b_avg_opp_total_str_att[is.na(ufc_refined$b_avg_opp_total_str_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_total_str_att)
+```
+
+
+# b_avg_opp_total_str_landed Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r  b_avg_opp_total_str_landed Removing NAs the by replacing with the mean of the weight class in which the player is26}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>%
+  mutate(Mean_b_avg_opp_total_str_landed = mean(b_avg_opp_total_str_landed,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_total_str_landed[is.na(ufc_refined$b_avg_opp_total_str_landed)] <- ufc_refined$Mean_b_avg_opp_total_str_landed[is.na(ufc_refined$b_avg_opp_total_str_landed)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_total_str_landed)
+```
+
+# b_total_time_fought_seconds Removing NAs the by replacing with the mean of the weight class in which the player is
+```{r Removing NAs the by replacing with the mean of the weight class in which the player is}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>%
+  mutate(Mean_b_total_time_fought_seconds = mean(b_total_time_fought_seconds,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_total_time_fought_seconds[is.na(ufc_refined$b_total_time_fought_seconds)] <- ufc_refined$Mean_b_total_time_fought_seconds[is.na(ufc_refined$b_total_time_fought_seconds)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_total_time_fought_seconds)
+```
+
+# b_avg_opp_td_att Removing NAs the by replacing with the mean of the weight class in which the player is
+
+```{r Removing NAs the by replacing with the mean of the weight class in which the player is27}
+ufc_refined <- ufc_refined %>% 
+  group_by(weight_class) %>%
+  mutate(Mean_b_avg_opp_td_att = mean(b_avg_opp_td_att,na.rm = TRUE)) %>% 
+  ungroup() 
+
+
+
+ ufc_refined$b_avg_opp_td_att[is.na(ufc_refined$b_avg_opp_td_att)] <- ufc_refined$Mean_b_avg_opp_td_att[is.na(ufc_refined$b_avg_opp_td_att)]
+ 
+ufc_refined %>% 
+  assert(not_na, b_avg_opp_td_att)
+```
+
+
+
+
+
+
+# cheking the dates for NAs
+
+```{r Date check for not NA values}
+
+ufc_refined %>% 
+  assert(not_na, "date")
+
+```
+
+# Removing the rest of NAs
+
+```{r removing NAs from the dataset}
+
+
+ufc_refined <- na.omit(ufc_refined)
+
+
+```
+
+
+
+
+
+
+
+# Checking for specific values in winner and title bout
+```{r assert to check the values in winner and title bout}
+
+ufc_refined %>% 
+  assert(in_set("Red","Blue", "Draw"), winner)
+
+ufc_refined %>% 
+  assert(in_set("TRUE","FALSE"),title_bout)
+
+
+```
+
+
+Checking for the ranges. I have calculated the minimum and maximum values of all the variable under the test after reviewing them from different UFC websites i know that the minimum can be 0 and the maximum value cannot be more than 10000
+
+```{r checking the ranges}
+ufc_refined %>% 
+  assert(within_bounds(0,10000), -date, - location, - winner, -r_fighter, -b_fighter, -referee,-title_bout, -weight_class, -b_stance, -r_stance)
+
+
+  
+```
+
+CHecking the ages
+
+```{r checking the ages}
+ufc_refined %>% 
+  assert(within_bounds(0,120), b_age)
+
+
+ufc_refined %>% 
+  assert(within_bounds(0,120), r_age)
+
+```
+
+# Making a bar plot to count the number of fights in each category
+
+```{r bar plot to count the number of fights in each weight category}
+#library(ggplot2)
+
+#unique(ufcrefined$weight_class)
+ufc_refined %>% 
+     ggplot(aes(weight_class)) + 
+  geom_bar(stat = "count", na.rm = T, fill = "steelblue", color = "black") + 
+  scale_y_continuous(breaks = seq(0,800,100)) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 50,hjust = 1,vjust = 1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) + 
+  geom_text(stat = "Count",aes(label = ..count..),vjust = -0.1)
+
+
+```
+
+#Making a boxplot to identify outliers in the columns of UFC data
+```{r identify outliers}
+selected <- c("b_avg_opp_total_str_att",
+"b_avg_distance_landed",
+"b_avg_head_landed",
+"b_avg_head_att",
+"b_avg_total_str_landed")
+
+
+ ggplot(stack( ufc_refined[,selected]),aes(x = ind, y = values)) + 
+   geom_boxplot(na.rm = T) + 
+   theme_bw() + 
+    theme(axis.text.x = element_text(angle = 50,hjust = 1,vjust = 1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+ 
+ 
+ 
+
+```
+
+

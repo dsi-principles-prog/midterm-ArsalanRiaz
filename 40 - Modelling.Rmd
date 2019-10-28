@@ -1,0 +1,67 @@
+---
+title: "40 - Modelling"
+output: html_notebook
+---
+changing_winner_to_ones_and_zeros1 and windorizing1
+
+# Prepearing the data for modelling and performing the pipe operations for two created functions. 
+
+1. One hot encoding will be applied to only the winner column 'changing_winner_to_ones_and_zeros1' 
+
+2. Windorizing technique will be applied to all the columns that are necessary to predict the outcome of the match i.e. which corner will win 'windorizing1'
+
+### Please note that the columns used in the windorizing technique will be the ones that needs to be standardized. This is left as the function to be created afterwards.
+
+# Columns in use: 
+
+winner_onehot_encode1
+
+#### date (this will need to be later adjusted by extracting the day of the week)
+
+b_current_lose_streak 
+r_current_lose_streak
+b_current_win_streak
+r_current_win_streak
+b_avg_BODY_att
+b_avg_BODY_landed
+b_avg_CLINCH_att	
+b_avg_CLINCH_landed
+b_avg_DISTANCE_att
+b_avg_DISTANCE_landed
+b_avg_opp_BODY_att	
+b_avg_opp_BODY_landed	
+b_avg_opp_CLINCH_att
+b_avg_opp_CLINCH_landed	
+b_avg_opp_DISTANCE_att	
+b_avg_opp_DISTANCE_landed
+r_avg_BODY_att
+r_avg_BODY_landed
+r_avg_CLINCH_att	
+r_avg_CLINCH_landed
+r_avg_DISTANCE_att
+r_avg_DISTANCE_landed
+r_avg_opp_BODY_att	
+r_avg_opp_BODY_landed	
+r_avg_opp_CLINCH_att
+r_avg_opp_CLINCH_landed	
+r_avg_opp_DISTANCE_att	
+r_avg_opp_DISTANCE_landed
+
+
+
+# applying the functions changing_winner_to_ones_and_zeros1 and windorizing1 and selecting the Augmented data for modelling. 
+
+Two additional functions will be added 
+1. the week of the day function
+2. standardization function 
+
+```{r applying the functions created in feature engineering to various columns, making augmented data}
+ufc_refined_modelling <- ufc_refined %>% 
+                          changing_winner_to_ones_and_zeros1(winner) %>% 
+                            windorizing1(c("b_avg_body_att","b_avg_body_landed","b_avg_clinch_att","b_avg_clinch_landed","b_avg_distance_att","b_avg_distance_landed","b_avg_opp_body_att","b_avg_opp_body_landed","b_avg_opp_clinch_att","b_avg_opp_clinch_landed","b_avg_opp_distance_att","b_avg_opp_distance_landed","r_avg_body_att","r_avg_body_landed","r_avg_clinch_att","r_avg_clinch_landed","r_avg_distance_att","r_avg_distance_landed","r_avg_opp_body_att","r_avg_opp_body_landed","r_avg_opp_clinch_att","r_avg_opp_clinch_landed","r_avg_opp_distance_att","r_avg_opp_distance_landed")) %>% 
+  select(winner_onehot_encode1,date,contains("windorized_values"))
+
+
+
+```
+

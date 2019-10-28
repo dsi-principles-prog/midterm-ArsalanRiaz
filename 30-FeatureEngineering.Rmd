@@ -1,0 +1,120 @@
+---
+title: "30 - Feature Engineering"
+output: html_notebook
+---
+
+
+# This is a technique known as one hot encoding where i give the winner in the red corner a value of 0 and the winner in the blue corner a value of 1. 
+
+We need to predict the winner of the fight, therefore, the UFC result for winner is converted into 1 and 0. If red winds the fight the winner column sets to 1, if blue wins the fight the winner column sets to 0 and if it is a draw the winner column sets to 2.
+
+The assert statement passes the test as well for the function.
+
+```{r  one-hot-encoding to change red win to 0 and blue to 1}
+
+
+
+  #ufcrefined$winner_onehot_encode <- ifelse(ufcrefined$winner=='Red', 0, 1)
+   
+
+# changing_winner_to_ones_and_zeros <- function(df,x) {
+#   {{df}} %>% 
+#   mutate(winner_onehot_encode = ifelse({{x}} == 'Red',0,1)) %>% 
+#     select(winner_onehot_encode, everything())
+# }
+
+
+changing_winner_to_ones_and_zeros1 <- function(df,x) {
+  df %>% 
+  mutate(winner_onehot_encode1 = case_when({{x}} == "Red" ~ 1,
+                                          {{x}} == "Blue" ~ 0,
+                                           T ~ 2)) %>% 
+    select(winner_onehot_encode1, everything())
+  }
+
+ufc_refined %>%  changing_winner_to_ones_and_zeros1(winner) %>% 
+  assert(in_set(0,1,2), winner_onehot_encode1) 
+
+
+
+
+
+```
+
+
+# A technique for making ML algorithms faster. Windorizing. The outliers are identified from any column and will be replaced with the value quantile(df$x)[4] + 1.5*IQR(df$x).
+
+In my UFC data set there are a lot of outliers, the outliers will cause uncertainty when they are ran through the models. Therefore, the function will change all the outliers of one column and give it the value of 
+quantile(df$x)[4] + 1.5*IQR(df$x). This will make sure that a consistency is present in the data and the outliers are still given a higher value. It will increase the speed of my calculations and accuracy of the model.
+
+This is a generic function. All columns given to the function will automatically be adjusted for outliers.
+However, we will neet to calculate the outliers in order to implement the assert statement. Therefore, the assert will be implemented on the basis of maximum and minimum of all the columns adjusted for outliers.
+
+Please note that wondorizing is a famous technique and this is the reason the name of the function is not changed. This will also help you if you look it up at google to get familiar with different techniques of windorizing.
+
+outliers are calculated in calculating_the_upperbound_for_outliers and the logic to apply the outliers is also written in it.
+
+windorizing1 takes the logic and applies it to all the functions mentioned
+
+
+```{r Identifying outliers and replacing them with (df$x)[4] + 1.5*IQR(df$x) of the same column}
+#Winsorization
+
+
+# windorizing <- function(df,x) {
+#   #bench <- 114.25 + 1.5*IQR(ufcrefined$b_avg_opp_total_str_att)
+#   
+#  # becnh %>%  ((quantile(x)[4]) + 1.5*IQR(x))
+#             
+# df %>% 
+#      mutate(b_avg_opp_total_str_att_new  = ifelse({{x}} > ((quantile({{x}})[4]) + 1.5*IQR({{x}})), ((quantile({{x}})[4]) + 1.5*IQR({{x}})), {{x}})) %>% 
+#     select(b_avg_opp_total_str_att_new,everything()) 
+#     
+#   }
+# ufcrefined <- winsorizing(ufcrefined,b_avg_opp_total_str_att)
+
+calculating_the_upperbound_for_outliers <-  function(x, na.rm = TRUE) {
+  
+  (ifelse({{x}} > ((quantile({{x}})[4]) + 1.5*IQR({{x}})), ((quantile({{x}})[4]) + 1.5*IQR({{x}})), {{x}})) 
+  
+}
+
+windorizing1 <- function(df, vars) {
+  
+  df %>% 
+    mutate_at(vars, list(windorized_values = calculating_the_upperbound_for_outliers)) %>% 
+    select(contains("windorized_values"), everything())
+   
+}
+          
+
+ufc_refined %>% windorizing1(c("b_avg_opp_total_str_att", "b_avg_clinch_landed")) %>% 
+  assert(within_bounds(0,200,b_avg_opp_total_str_att)) %>% 
+  assert(within_bounds(0,250,b_avg_clinch_landed))
+
+
+# Assert upper bound is calculated on the following condition
+#quantile(ufc_refined$b_avg_opp_total_str_att)[4] + 1.5*IQR(ufc_refined$b_avg_opp_total_str_att)
+
+```
+
+
+
+
+
+### I have made the augmented data set in modelling and all the pipelining is applied in the 40 section
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
