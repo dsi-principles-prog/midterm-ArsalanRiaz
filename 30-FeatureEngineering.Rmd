@@ -99,6 +99,24 @@ ufc_refined %>% windorizing1(c("b_avg_opp_total_str_att", "b_avg_clinch_landed")
 ```
 
 
+# Day_of_Week function created by Sun     
+input: data frame, data(var), Year(col_name1), Month(col_name2),Day_of_Week(col_name3)
+
+output: create three new columns and add them into original dataset
+
+```{r Day_of_Week function}
+library(lubridate)
+Day_of_Week<-function(df,var,col_name1,col_name2,col_name3){
+  df<-df %>% 
+    mutate(Year=year({{var}}),Month=month({{var}}),Day_of_Week=wday({{var}})) %>% 
+    select(Year,Month,Day_of_Week,everything())
+    names(df)[1]<-paste0(col_name1)  #we can use this line code to change the name of the new column we created 
+    names(df)[2]<-paste0(col_name2)
+    names(df)[3]<-paste0(col_name3)
+    df
+}
+
+```
 
 
 

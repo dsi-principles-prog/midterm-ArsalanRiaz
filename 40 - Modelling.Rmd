@@ -61,13 +61,17 @@ I am putting the assert statement for only two of the columns from the windorizi
 ufc_refined_modelling <- ufc_refined %>% 
                           changing_winner_to_ones_and_zeros1(winner) %>% 
                             windorizing1(c("b_avg_body_att","b_avg_body_landed","b_avg_clinch_att","b_avg_clinch_landed","b_avg_distance_att","b_avg_distance_landed","b_avg_opp_body_att","b_avg_opp_body_landed","b_avg_opp_clinch_att","b_avg_opp_clinch_landed","b_avg_opp_distance_att","b_avg_opp_distance_landed","r_avg_body_att","r_avg_body_landed","r_avg_clinch_att","r_avg_clinch_landed","r_avg_distance_att","r_avg_distance_landed","r_avg_opp_body_att","r_avg_opp_body_landed","r_avg_opp_clinch_att","r_avg_opp_clinch_landed","r_avg_opp_distance_att","r_avg_opp_distance_landed")) %>% 
-  select(winner_onehot_encode1,date,contains("windorized_values")) %>% 
+  Day_of_Week(date,'Year','Month','Day_of_Week') %>% 
+  select(winner_onehot_encode1,date,Year,Month,Day_of_Week,contains("windorized_values")) %>% 
   assert(in_set(0,1,2), winner_onehot_encode1) %>% 
    assert(within_bounds(0,26),b_avg_body_att_windorized_values) %>% 
-  assert(within_bounds(0,250),b_avg_clinch_landed_windorized_values)
+  assert(within_bounds(0,250),b_avg_clinch_landed_windorized_values) %>% 
+  assert(within_bounds(0,2020),Year) %>% 
+  assert(within_bounds(1,12),Month) %>% 
+  assert(within_bounds(1,7),Day_of_Week)
+  
 
-
-
+ufc_refined_modelling
 
 
 ```
